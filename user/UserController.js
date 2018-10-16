@@ -6,6 +6,7 @@ router.use(bodyParser.urlencoded({ extended: true }));
 router.use(bodyParser.json());
 
 var User = require('./User');
+var VerifyToken = require('./../auth/VerifyToken');
 
 // CREATE A NEW USER
 router.post('/', function (req, res) {
@@ -14,23 +15,23 @@ router.post('/', function (req, res) {
         email: req.body.email,
         password: req.body.password
     },
-    function(err, user){
-        if (err) return res.status(500).send("There was a problem adding the information to the database. Có vấn đề với kết nối DB");
-        res.status(200).send(user);
-    }
+        function (err, user) {
+            if (err) return res.status(500).send("There was a problem adding the information to the database. Có vấn đề với kết nối DB");
+            res.status(200).send(user);
+        }
     );
 });
 
 //GET ALL THE USER IN DB
-router.get('/', function(req, res){
-    User.find({}, function(err, users){
-        if(err) res.status(500).send("There was a problem adding the information to the database. Có vấn đề với kết nối DB");
+router.get('/', VerifyToken, function (req, res) {
+    User.find({}, function (err, users) {
+        if (err) return res.status(500).send("There was a problem adding the information to the database. Có vấn đề với kết nối DB");
         res.status(200).send(users);
     });
 });
 
 // GETS A SINGLE USER FROM THE DATABASE
-router.get('/:id', function (req, res) {
+router.get('/:id', VerifyToken, function (req, res) {
     User.findById(req.params.id, function (err, user) {
         if (err) return res.status(500).send("There was a problem finding the user.");
         if (!user) return res.status(404).send("No user found.");
@@ -40,17 +41,24 @@ router.get('/:id', function (req, res) {
 
 
 // DELETES A USER FROM THE DATABASE
-router.delete('/:id', function (req, res) {
+router.delete('/:id', VerifyToken, function (req, res) {
     User.findByIdAndRemove(req.params.id, function (err, user) {
         if (err) return res.status(500).send("There was a problem deleting the user.");
-        res.status(200).send("User: "+ user.name +" was deleted.");
+        if (!user) return res.status(404).send("No user found.");
+        if (!user.name) {
+            return res.status(200).send("User: " + user.email + " was deleted.");
+        } else {
+            return res.status(200).send("User: " + user.name + " was deleted.");
+        }
+        res.status(200).send("User: " + user.name + " was deleted.");
     });
 });
 
 // UPDATES A SINGLE USER IN THE DATABASE
-router.put('/:id', function (req, res) {
-    User.findByIdAndUpdate(req.params.id, req.body, {new: true}, function (err, user) {
+router.put('/:id', VerifyToken, function (req, res) {
+    User.findByIdAndUpdate(req.params.id, req.body, { new: true }, function (err, user) {
         if (err) return res.status(500).send("There was a problem updating the user.");
+        if (!user) return res.status(404).send("No user found.");        
         res.status(200).send(user);
     });
 });
